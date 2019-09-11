@@ -11,7 +11,7 @@ To install the module, simply run the below or just import it into your code if 
 
 ## Details
 
-The op module expects that you have `op` installed and have signed-in to an account before (thus generating ~/.op/config). If you already have an OP\_SESSION environment variable set, the module will attempt to use that to communicate with `op`. If it is stale, it will call `op` and prompt you to sign-in (this will be taken care of by `op` - not the module).
+The op module expects that you have `op` installed and have signed-in to an account before (thus generating ~/.op/config). If you already have an OP\_SESSION environment variable set, the module will attempt to use that to communicate with `op`. If it's unset, it will call `op` and prompt you to sign-in (this will be taken care of by `op` - not the module) unless you pass an explicit password to `New`.
 
 If an account is not specified, the module will attempt to use the only account in the config file. If there is more than one, you'll need to specify its name explicitly.
 

@@ -3,6 +3,7 @@ package op
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -38,10 +39,11 @@ type opItem struct {
 
 // Op represents an op session object
 type Op struct {
-	account string
-	envVar  string
-	runner  func(name string, args ...string) (cmd *exec.Cmd)
-	setEnv  string
+	account  string
+	envVar   string
+	password string
+	runner   func(name string, args ...string) (cmd *exec.Cmd)
+	setEnv   string
 }
 
 // Opt represents a function that can operate on an Op pointer
@@ -82,7 +84,18 @@ func (o *Op) getEnv() error {
 		return nil
 	}
 	cmd := o.runner("op", "signin", o.account)
-	cmd.Stdin = os.Stdin
+	if o.password != "" {
+		stdin, err := cmd.StdinPipe()
+		if err != nil {
+			return fmt.Errorf("unable to open stdin pipe for op: %v", err)
+		}
+		go func() {
+			defer stdin.Close()
+			io.WriteString(stdin, string(o.password))
+		}()
+	} else {
+		cmd.Stdin = os.Stdin
+	}
 	out, err := cmd.Output()
 	if err != nil {
 		return fmt.Errorf("unable to sign-in to %s: %v", o.account, err)
@@ -225,6 +238,13 @@ func New(opts ...Opt) (o *Op, err error) {
 func WithAccount(name string) Opt {
 	return func(o *Op) {
 		o.account = name
+	}
+}
+
+// WithPassword sets the password that will be used to sign-in to op
+func WithPassword(password string) Opt {
+	return func(o *Op) {
+		o.password = password
 	}
 }
 
