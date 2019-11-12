@@ -16,6 +16,7 @@ import (
 const (
 	envPrefix  = "OP_SESSION_"
 	configFile = "~/.op/config"
+	newLine    = 0xa
 )
 
 var authRequired = regexp.MustCompile("(not currently|Authentication)")
@@ -130,6 +131,10 @@ func (o *Op) runOp(commands ...string) ([]byte, error) {
 			return []byte{}, fmt.Errorf("found stale %s variable in environment", o.envVar)
 		}
 		return cmdOut, fmt.Errorf("error running %s: %s", commands, cmdOut)
+	}
+	last := len(cmdOut) - 1
+	if cmdOut[last] == newLine {
+		cmdOut = cmdOut[:last]
 	}
 	return cmdOut, nil
 }

@@ -37,7 +37,10 @@ func TestTotp(t *testing.T) {
 	}
 	want := "123456"
 	got, err := o.GetTotp("foo")
-	if string(want) != "123456" {
+	if err != nil {
+		t.Fatal("Unexpected error:", err)
+	}
+	if string(got) != "123456" {
 		t.Fatalf("Got: %s, want: %s\n", got, want)
 	}
 }
@@ -118,7 +121,7 @@ func TestHelperProcess(t *testing.T) {
 		case "get":
 			switch args[1] {
 			case "totp":
-				fmt.Println("123456")
+				fmt.Printf("123456\n")
 			case "item":
 				if args[2] == "FOOBAR" {
 					fmt.Println(item)
