@@ -158,9 +158,6 @@ func (o *Op) GetUserPass(item string) (user, pass string, err error) {
 	if err != nil {
 		return "", "", err
 	}
-	if !(len(i.Details.Fields) == 2) {
-		return "", "", fmt.Errorf("unexpected amount of item details")
-	}
 	for _, field := range i.Details.Fields {
 		switch field.Name {
 		case "username":
