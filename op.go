@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"syscall"
 
 	"github.com/mitchellh/go-homedir"
 )
@@ -43,6 +44,7 @@ type Op struct {
 	account  string
 	envVar   string
 	password string
+	procAttr *syscall.SysProcAttr
 	runner   func(name string, args ...string) (cmd *exec.Cmd)
 	setEnv   string
 }
@@ -85,6 +87,7 @@ func (o *Op) getEnv() error {
 		return nil
 	}
 	cmd := o.runner("op", "signin", o.account)
+	cmd.SysProcAttr = o.procAttr
 	if o.password != "" {
 		stdin, err := cmd.StdinPipe()
 		if err != nil {
@@ -122,6 +125,7 @@ func (o *Op) runOp(commands ...string) ([]byte, error) {
 	cmdEnv := os.Environ()
 	cmdEnv = append(cmdEnv, o.setEnv)
 	cmd := o.runner("op", commands...)
+	cmd.SysProcAttr = o.procAttr
 	// append instead of replacing here as testing can set
 	// an env var before we get here
 	cmd.Env = append(cmd.Env, cmdEnv...)
@@ -247,6 +251,18 @@ func WithAccount(name string) Opt {
 func WithPassword(password string) Opt {
 	return func(o *Op) {
 		o.password = password
+	}
+}
+
+// WithUID sets the uid that will be used when running the op command
+// Assumes the caller has privs for SYS_SETUID
+func WithUID(uid int) Opt {
+	return func(o *Op) {
+		o.procAttr = &syscall.SysProcAttr{
+			Credential: &syscall.Credential{
+				Uid: uint32(uid),
+			},
+		}
 	}
 }
 
