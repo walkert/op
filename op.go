@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path"
 	"regexp"
 	"strings"
 	"syscall"
@@ -16,11 +17,17 @@ import (
 
 const (
 	envPrefix  = "OP_SESSION_"
-	configFile = "~/.op/config"
+	configFile = "config"
 	newLine    = 0xa
 )
 
-var authRequired = regexp.MustCompile("(not currently|Authentication)")
+var (
+	authRequired = regexp.MustCompile("(not currently|Authentication)")
+	configDirs   = []string{
+		"~/.op",
+		"~/.config/op",
+	}
+)
 
 type opConfig struct {
 	LatestSignIn *string `json:"latest_signin,omitempty"`
@@ -60,15 +67,27 @@ type config interface {
 type configer struct{}
 
 func (c configer) Read() ([]byte, error) {
-	var empty []byte
-	path, err := homedir.Expand(configFile)
-	if err != nil {
-		return empty, fmt.Errorf("unable to expand '%s': %v", configFile, err)
+	var (
+		empty   []byte
+		configs []string
+	)
+	for _, option := range configDirs {
+		cpath, err := homedir.Expand(path.Join(option, configFile))
+		if err != nil {
+			return empty, fmt.Errorf("unable to expand '%s': %v", option, err)
+		}
+		if _, err = os.Stat(cpath); os.IsNotExist(err) {
+			continue
+		}
+		configs = append(configs, cpath)
 	}
-	if _, err = os.Stat(path); os.IsNotExist(err) {
-		return empty, fmt.Errorf("the op config file %s does not exist. Please sign-in first.", configFile)
+	if len(configs) == 0 {
+		return empty, fmt.Errorf("unable to find a config file in the standard locations: %s. Please sign-in first.", strings.Join(configDirs, ", "))
 	}
-	data, err := ioutil.ReadFile(path)
+	if len(configs) > 1 {
+		return empty, fmt.Errorf("unexpectedly found multiple config files: %s. Please remove one of them.", strings.Join(configs, ", "))
+	}
+	data, err := ioutil.ReadFile(configs[0])
 	if err != nil {
 		return empty, err
 	}
